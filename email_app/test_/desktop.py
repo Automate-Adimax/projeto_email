@@ -5,7 +5,7 @@ import os
 import pandas as pd
 
 # Caminho do arquivo PBIX
-arquivo_pbix = r"C:\Users\thalissa.mariana\Downloads\Dashboard Comercial - Varejo (1).pbix"
+arquivo_pbix = r"C:\Users\thalissa.mariana\Documents\PROJETOS THALISSA\PROJETOS\projeto_email\dashboard\Dashboard Comercial - Varejo.pbix"
 
 # Caminho da planilha de nomes
 arquivo_excel = r"C:\Users\thalissa.mariana\Documents\PROJETOS THALISSA\PROJETOS\projeto_email\nomes\NOMES.xlsx"
@@ -40,52 +40,43 @@ lista_nomes = df_nomes.iloc[:, 0].dropna().tolist()
 time.sleep(5)
 
 # Loop pelos nomes
+contador = 0  # contador de checkboxes processados
+
 for nome in lista_nomes:
     try:
         nome = str(nome).strip()
         print(f"Processando: {nome}")
 
-        # Área visível da janela
-        rect_janela = janela.rectangle()
-
         # Tenta achar o checkbox
         checkbox = janela.child_window(title=nome, control_type="CheckBox")
         checkbox.wait('exists enabled ready', timeout=10)
 
-        # Pega a posição do checkbox
+        # Atualiza posição do checkbox
         rect_checkbox = checkbox.rectangle()
+        checkbox_mid_y = (rect_checkbox.top + rect_checkbox.bottom) // 2
 
-        # Enquanto o checkbox estiver fora da área visível → scroll
-        while rect_checkbox.top < rect_janela.top or rect_checkbox.bottom > rect_janela.bottom:
-            print(f"{nome} não visível → scrollando...")
-            pyautogui.moveTo(rect_janela.mid_point().x, rect_janela.mid_point().y)
-            pyautogui.scroll(-300)  # scroll para baixo
-            time.sleep(0.5)
-            rect_checkbox = checkbox.rectangle()  # atualiza posição
+        contador += 1  # incrementa contador
+        print(f"Checkbox {contador} - posição Y: {checkbox_mid_y}")
 
-        # Agora está visível → clica
+        # Só scrolla quando chegar no 6º checkbox
+        if contador == 6:
+            scroll_count = 0
+            scroll_max = 20
+            while checkbox_mid_y < 634 and scroll_count < scroll_max:
+                pyautogui.moveTo(janela.rectangle().mid_point().x, janela.rectangle().mid_point().y)
+                pyautogui.scroll(-30)
+                rect_checkbox = checkbox.rectangle()
+                checkbox_mid_y = (rect_checkbox.top + rect_checkbox.bottom) // 2
+                scroll_count += 1
+
+        # Clica no checkbox
         checkbox.click_input()
-        time.sleep(2)
+        time.sleep(0.5)
 
-        # 4. Localiza o modal
-        modal_autosservico = app.window(title_re=".*Exibir como funções.*")
-        modal_autosservico.wait('exists ready visible enabled', timeout=15)
-
-        if modal_autosservico.exists():
-            print("Modal aberto → clicando em OK")
-            botao_ok = modal_autosservico.child_window(title="OK", control_type="Button")
-            botao_ok.wait('exists ready visible enabled', timeout=15).click_input()
-            modal_autosservico.wait_not('exists', timeout=15)
-
-            # Espera antes do print
-            print("Aguardando 10 segundos antes do screenshot...")
-            time.sleep(10)
-
-        # 7. Screenshot
-        nome_checkbox = nome.replace(" ", "_")
-        screenshot_path = os.path.join(pasta_prints, f"{nome_checkbox}.png")
-        pyautogui.screenshot(screenshot_path)
-        print(f"Screenshot salva em: {screenshot_path}")
+        # Aqui você pode continuar com o modal, print, desmarcar...
+        # ...
 
     except Exception as e:
         print(f"Erro com '{nome}': {e}")
+
+
